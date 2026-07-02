@@ -20,6 +20,7 @@ import { adminAction } from "@/lib/safe-action";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { updateStaffSchema } from "@/lib/validations";
 
 // ── Helper: Get admin's organization ─────────────────────────
 // Finds which organization the logged-in admin belongs to.
@@ -282,6 +283,57 @@ export const removeStaffFromOrgAction = adminAction
     await prisma.member.delete({
       where: { id: parsedInput.memberId },
     });
+
+    revalidatePath("/admin/staff");
+    return { success: true };
+  });
+
+// ── Update Staff Member ──────────────────────────────────────
+
+export const updateStaffAction = adminAction
+  .schema(updateStaffSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { id, name, email, password } = parsedInput;
+
+    const adminMembership = await getAdminOrganization(ctx.user.id);
+
+    const member = await prisma.member.findFirst({
+      where: {
+        userId: id,
+        organizationId: adminMembership.organizationId,
+      },
+    });
+
+    if (!member) {
+      throw new Error("This user is not a member of your organization.");
+    }
+
+    const existing = await prisma.user.findFirst({
+      where: {
+        email,
+        NOT: { id },
+      },
+    });
+    if (existing) {
+      throw new Error(`A user with email "${email}" already exists.`);
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        name,
+        email,
+      },
+    });
+
+    if (password) {
+      await auth.api.setUserPassword({
+        body: {
+          userId: id,
+          newPassword: password,
+        },
+      });
+    }
 
     revalidatePath("/admin/staff");
     return { success: true };

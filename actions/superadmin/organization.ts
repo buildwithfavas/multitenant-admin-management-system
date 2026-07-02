@@ -23,18 +23,9 @@ import { z } from "zod";
 import { superAdminAction } from "@/lib/safe-action";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { orgSchema } from "@/lib/validations";
 
-export const orgSchema = z.object({
-  name: z.string().min(2, "Organization name must be at least 2 characters"),
-  slug: z
-    .string()
-    .min(2, "Slug must be at least 2 characters")
-    .regex(
-      /^[a-z0-9-]+$/,
-      "Slug can only contain lowercase letters, numbers, and hyphens"
-    ),
-  logo: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-});
+
 
 // ── Create Organization ─────────────────────────────────────
 // Super Admin creates a new organization (company/tenant)

@@ -10,7 +10,8 @@ import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { createOrganizationAction, orgSchema } from "@/actions/superadmin/organization";
+import { createOrganizationAction } from "@/actions/superadmin/organization";
+import { orgSchema } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

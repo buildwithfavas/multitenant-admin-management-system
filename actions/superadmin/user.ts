@@ -16,16 +16,7 @@ import { superAdminAction } from "@/lib/safe-action";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-
-export const userSchema = z.object({
-      name: z.string().min(2, "Name must be at least 2 characters"),
-      email: z.string().email("Invalid email address"),
-      password: z.string().min(8, "Password must be at least 8 characters"),
-      // org-level role: "admin" or "member" (staff)
-      orgRole: z.enum(["admin", "member"]).default("member"),
-      // Which org to add them to (optional — superadmin might not need an org)
-      organizationId: z.string().optional(),
-    })
+import { userSchema, updateUserSchema } from "@/lib/validations";
 
 // ── Create User ─────────────────────────────────────────────
 // Creates a user and optionally adds them to an organization
@@ -187,6 +178,63 @@ export const deleteUserAction = superAdminAction
     await prisma.user.delete({
       where: { id: parsedInput.userId },
     });
+
+    revalidatePath("/superadmin/users");
+    return { success: true };
+  });
+
+// ── Update User ─────────────────────────────────────────────
+
+export const updateUserAction = superAdminAction
+  .schema(updateUserSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { id, name, email, password, orgRole, organizationId } = parsedInput;
+
+    if (id === ctx.user.id) {
+      throw new Error("You cannot edit your own super admin account settings here.");
+    }
+
+    const existing = await prisma.user.findFirst({
+      where: {
+        email,
+        NOT: { id },
+      },
+    });
+    if (existing) {
+      throw new Error(`A user with email "${email}" already exists.`);
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        name,
+        email,
+        role: orgRole === "admin" ? "admin" : "member",
+      },
+    });
+
+    if (password) {
+      await auth.api.setUserPassword({
+        body: {
+          userId: id,
+          newPassword: password,
+        },
+      });
+    }
+
+    await prisma.member.deleteMany({
+      where: { userId: id },
+    });
+
+    if (organizationId) {
+      await prisma.member.create({
+        data: {
+          userId: id,
+          organizationId,
+          role: orgRole,
+        },
+      });
+    }
 
     revalidatePath("/superadmin/users");
     return { success: true };

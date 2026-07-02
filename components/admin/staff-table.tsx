@@ -39,8 +39,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, UserMinus } from "lucide-react";
+import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, UserMinus, Pencil } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 interface MemberWithUser {
   id: string;
@@ -148,8 +149,17 @@ export function StaffTable({ members }: Props) {
                         <MoreHorizontal className="size-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuLabel>Staff Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/staff/${member.userId}/edit`}>
+                          <Pencil className="mr-2 size-4 text-muted-foreground" />
+                          Edit Staff Member
+                        </Link>
+                      </DropdownMenuItem>
+
                       <DropdownMenuSeparator />
 
                       {member.role !== "admin" && member.role !== "owner" ? (

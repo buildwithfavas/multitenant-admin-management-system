@@ -1,8 +1,8 @@
 "use client";
-// components/superadmin/create-user-form.tsx
+// components/superadmin/edit-user-form.tsx
 
-import { createUserAction } from "@/actions/superadmin/user";
-import { userSchema } from "@/lib/validations";
+import { updateUserAction } from "@/actions/superadmin/user";
+import { updateUserSchema } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,36 +21,51 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-type FormValues = z.input<typeof userSchema>;
+type FormValues = z.input<typeof updateUserSchema>;
 
 interface Organization {
   id: string;
   name: string;
 }
 
-export function CreateUserForm({ organizations }: { organizations: Organization[] }) {
+interface UserProps {
+  id: string;
+  name: string;
+  email: string;
+  orgRole: "admin" | "member";
+  organizationId: string;
+}
+
+export function EditUserForm({
+  user,
+  organizations,
+}: {
+  user: UserProps;
+  organizations: Organization[];
+}) {
   const router = useRouter();
 
-  const { execute, status } = useAction(createUserAction, {
+  const { execute, status } = useAction(updateUserAction, {
     onSuccess: ({ data }) => {
       if (data?.success) {
-        toast.success(`User created successfully!`);
+        toast.success(`User updated successfully!`);
         router.push("/superadmin/users");
       }
     },
     onError: ({ error }) => {
-      toast.error(error.serverError || "Failed to create user");
+      toast.error(error.serverError || "Failed to update user");
     },
   });
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(userSchema as any),
+    resolver: zodResolver(updateUserSchema as any),
     defaultValues: {
-      name: "",
-      email: "",
+      id: user.id,
+      name: user.name,
+      email: user.email,
       password: "",
-      orgRole: "member",
-      organizationId: "",
+      orgRole: user.orgRole,
+      organizationId: user.organizationId,
     },
   });
 
@@ -59,9 +74,9 @@ export function CreateUserForm({ organizations }: { organizations: Organization[
   return (
     <Card className="max-w-lg">
       <CardHeader>
-        <CardTitle>Create User</CardTitle>
+        <CardTitle>Edit User</CardTitle>
         <CardDescription>
-          Add a new admin or staff member to an organization
+          Modify account details or update organization settings for {user.name}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -74,6 +89,8 @@ export function CreateUserForm({ organizations }: { organizations: Organization[
           )}
           className="flex flex-col gap-5"
         >
+          <input type="hidden" {...form.register("id")} />
+
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">Full Name *</Label>
@@ -92,7 +109,7 @@ export function CreateUserForm({ organizations }: { organizations: Organization[
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Password *</Label>
+            <Label htmlFor="password">Password (leave blank to keep current)</Label>
             <Input id="password" type="password" placeholder="Min. 8 characters" disabled={isPending} {...form.register("password")} />
             {form.formState.errors.password && (
               <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
@@ -101,9 +118,9 @@ export function CreateUserForm({ organizations }: { organizations: Organization[
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <Label>Role in Organization *</Label>
+              <Label>Role in Organization</Label>
               <Select
-                defaultValue="member"
+                defaultValue={user.orgRole}
                 onValueChange={(val) => form.setValue("orgRole", val as "admin" | "member")}
                 disabled={isPending}
               >
@@ -120,6 +137,7 @@ export function CreateUserForm({ organizations }: { organizations: Organization[
             <div className="flex flex-col gap-2">
               <Label>Organization</Label>
               <Select
+                defaultValue={user.organizationId || "none"}
                 onValueChange={(val) => form.setValue("organizationId", val === "none" ? "" : val)}
                 disabled={isPending}
               >
@@ -143,7 +161,7 @@ export function CreateUserForm({ organizations }: { organizations: Organization[
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Creating..." : "Create User"}
+              {isPending ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </form>
