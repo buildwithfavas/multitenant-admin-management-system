@@ -65,39 +65,39 @@ export const createUserAction = superAdminAction
 
 // ── List All Users ──────────────────────────────────────────
 // Super Admin views ALL users across ALL organizations
-export const listAllUsersAction = superAdminAction
-  .schema(
-    z.object({
-      search: z.string().optional(),
-    })
-  )
-  .action(async ({ parsedInput }) => {
-    const { search } = parsedInput;
+// export const listAllUsersAction = superAdminAction
+//   .schema(
+//     z.object({
+//       search: z.string().optional(),
+//     })
+//   )
+//   .action(async ({ parsedInput }) => {
+//     const { search } = parsedInput;
 
-    const users = await prisma.user.findMany({
-      where: search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-            ],
-          }
-        : undefined,
-      orderBy: { createdAt: "desc" },
-      include: {
-        // Include org memberships for each user
-        members: {
-          include: {
-            organization: {
-              select: { id: true, name: true, slug: true },
-            },
-          },
-        },
-      },
-    });
+//     const users = await prisma.user.findMany({
+//       where: search
+//         ? {
+//             OR: [
+//               { name: { contains: search, mode: "insensitive" } },
+//               { email: { contains: search, mode: "insensitive" } },
+//             ],
+//           }
+//         : undefined,
+//       orderBy: { createdAt: "desc" },
+//       include: {
+//         // Include org memberships for each user
+//         members: {
+//           include: {
+//             organization: {
+//               select: { id: true, name: true, slug: true },
+//             },
+//           },
+//         },
+//       },
+//     });
 
-    return { users };
-  });
+//     return { users };
+//   });
 
 // ── Promote Staff to Admin (within an org) ───────────────────
 // Changes a member's role in an organization from "member" → "admin"

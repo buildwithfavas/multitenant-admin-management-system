@@ -29,10 +29,7 @@ async function getAdminOrganization(userId: string) {
   const membership = await prisma.member.findFirst({
     where: {
       userId,
-      role: { in: ["admin", "owner"] },
-    },
-    include: {
-      organization: true,
+      role: { in: ["admin"] },
     },
   });
 
@@ -45,52 +42,53 @@ async function getAdminOrganization(userId: string) {
 
 // ── List Org Staff ──────────────────────────────────────────
 // Admin sees ONLY their org's staff (not other orgs!)
-export const listOrgStaffAction = adminAction
-  .schema(
-    z.object({
-      search: z.string().optional(),
-    })
-  )
-  .action(async ({ parsedInput, ctx }) => {
-    // Get the admin's organization first
-    const adminMembership = await getAdminOrganization(ctx.user.id);
 
-    // List members of ONLY this organization
-    const members = await prisma.member.findMany({
-      where: {
-        organizationId: adminMembership.organizationId,
-        // Exclude the admin themselves from the list
-        NOT: { userId: ctx.user.id },
-        ...(parsedInput.search
-          ? {
-              user: {
-                OR: [
-                  { name: { contains: parsedInput.search, mode: "insensitive" } },
-                  { email: { contains: parsedInput.search, mode: "insensitive" } },
-                ],
-              },
-            }
-          : {}),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+// export const listOrgStaffAction = adminAction
+//   .schema(
+//     z.object({
+//       search: z.string().optional(),
+//     })
+//   )
+//   .action(async ({ parsedInput, ctx }) => {
+//     // Get the admin's organization first
+//     const adminMembership = await getAdminOrganization(ctx.user.id);
 
-    return {
-      members,
-      organization: adminMembership.organization,
-    };
-  });
+//     // List members of ONLY this organization
+//     const members = await prisma.member.findMany({
+//       where: {
+//         organizationId: adminMembership.organizationId,
+//         // Exclude the admin themselves from the list
+//         NOT: { userId: ctx.user.id },
+//         ...(parsedInput.search
+//           ? {
+//               user: {
+//                 OR: [
+//                   { name: { contains: parsedInput.search, mode: "insensitive" } },
+//                   { email: { contains: parsedInput.search, mode: "insensitive" } },
+//                 ],
+//               },
+//             }
+//           : {}),
+//       },
+//       include: {
+//         user: {
+//           select: {
+//             id: true,
+//             name: true,
+//             email: true,
+//             role: true,
+//             createdAt: true,
+//           },
+//         },
+//       },
+//       orderBy: { createdAt: "desc" },
+//     });
+
+//     return {
+//       members,
+//       organization: adminMembership.organizationId,
+//     };
+//   });
 
 // ── Add Staff to Org ────────────────────────────────────────
 // Admin adds a new staff member to their organization

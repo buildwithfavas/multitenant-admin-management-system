@@ -60,21 +60,21 @@ export const createOrganizationAction = superAdminAction
 
 // ── List All Organizations ──────────────────────────────────
 // Super Admin views all organizations in the system
-export const listOrganizationsAction = superAdminAction
-  .schema(z.object({}))
-  .action(async () => {
-    const organizations = await prisma.organization.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        // Count members in each org
-        _count: {
-          select: { members: true },
-        },
-      },
-    });
+// export const listOrganizationsAction = superAdminAction
+//   .schema(z.object({}))
+//   .action(async () => {
+//     const organizations = await prisma.organization.findMany({
+//       orderBy: { createdAt: "desc" },
+//       include: {
+//         // Count members in each org
+//         _count: {
+//           select: { members: true },
+//         },
+//       },
+//     });
 
-    return { organizations };
-  });
+//     return { organizations };
+//   });
 
 // ── Delete Organization ─────────────────────────────────────
 // Super Admin deletes an organization (cascades to members)

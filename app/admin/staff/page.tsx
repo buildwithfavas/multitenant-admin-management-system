@@ -25,20 +25,15 @@ export default async function AdminStaffPage() {
   const membership = await prisma.member.findFirst({
     where: {
       userId: session.user.id,
-      role: { in: ["admin", "owner"] },
-    },
-    include: {
-      organization: true,
+      role: { in: ["admin"] },
     },
   });
 
-  const organization = membership?.organization;
+  const orgId = membership?.organizationId;
 
-  if (!organization && session.user.role !== "superadmin") {
+  if (!orgId && session.user.role !== "admin") {
     redirect("/login");
   }
-
-  const orgId = organization?.id || "global";
 
   // Scoped database query to fetch members of THIS organization
   const members = await prisma.member.findMany({
@@ -54,7 +49,6 @@ export default async function AdminStaffPage() {
           name: true,
           email: true,
           role: true,
-          createdAt: true,
         },
       },
     },
