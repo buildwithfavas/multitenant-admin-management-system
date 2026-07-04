@@ -58,12 +58,6 @@ export function CreateUserForm({ organizations }: { organizations: Organization[
 
   return (
     <Card className="max-w-lg">
-      <CardHeader>
-        <CardTitle>Create User</CardTitle>
-        <CardDescription>
-          Add a new admin or staff member to an organization
-        </CardDescription>
-      </CardHeader>
       <CardContent>
         <form
           onSubmit={form.handleSubmit((values) =>

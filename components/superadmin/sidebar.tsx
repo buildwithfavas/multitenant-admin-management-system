@@ -123,6 +123,7 @@ export function SuperAdminSidebar({ user }: { user: User }) {
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
         </div>
+        <Separator />
         <Button
           variant="ghost"
           className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-2"

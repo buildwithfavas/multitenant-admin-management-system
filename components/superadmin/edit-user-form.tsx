@@ -73,12 +73,6 @@ export function EditUserForm({
 
   return (
     <Card className="max-w-lg">
-      <CardHeader>
-        <CardTitle>Edit User</CardTitle>
-        <CardDescription>
-          Modify account details or update organization settings for {user.name}
-        </CardDescription>
-      </CardHeader>
       <CardContent>
         <form
           onSubmit={form.handleSubmit((values) =>

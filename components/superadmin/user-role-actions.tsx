@@ -113,7 +113,6 @@ export function UserRoleActions({ userId, userName, members }: Props) {
           </div>
         ))}
 
-        <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:bg-destructive/10"
           onClick={() => setDeleteOpen(true)}

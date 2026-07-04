@@ -70,7 +70,7 @@ export default async function AllUsersPage() {
             Users
           </CardTitle>
           <CardDescription>
-            Click role badges to promote/demote users within their organizations.
+            Click actions to edit, delete and to promote/demote users within their organizations.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -113,9 +113,6 @@ export default async function AllUsersPage() {
                           user.members.map((m) => (
                             <div key={m.id} className="flex items-center gap-2">
                               <span className="text-xs">{m.organization.name}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {m.role}
-                              </Badge>
                             </div>
                           ))
                         )}
