@@ -1,10 +1,4 @@
 "use client";
-// ============================================================
-// components/admin/staff-table.tsx — Staff Management Table (Org Admin)
-// ============================================================
-// Client Component utilizing next-safe-action hooks to execute
-// promote, demote, and remove actions securely.
-// ============================================================
 
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
@@ -13,14 +7,6 @@ import {
   demoteAdminToStaffAction,
   removeStaffFromOrgAction,
 } from "@/actions/admin/staff";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +27,9 @@ import {
 } from "@/components/ui/dialog";
 import { MoreHorizontal, ArrowUpCircle, ArrowDownCircle, UserMinus, Pencil } from "lucide-react";
 import { useState } from "react";
-import Link from "next/link";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataTable } from "@/components/ui/data-table";
+import { EditStaffForm } from "./edit-staff-form";
 
 interface MemberWithUser {
   id: string;
@@ -62,6 +50,7 @@ interface Props {
 export function StaffTable({ members }: Props) {
   const [selectedMember, setSelectedMember] = useState<MemberWithUser | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   // ── Promote Action ──────────────────────────────────────────
   const { execute: promote, status: promoteStatus } = useAction(
@@ -113,90 +102,119 @@ export function StaffTable({ members }: Props) {
     }
   }
 
+  const columns: ColumnDef<MemberWithUser>[] = [
+    {
+      accessorKey: "user.name",
+      header: "Name",
+      cell: ({ row }) => <span className="font-medium">{row.original.user.name || "N/A"}</span>,
+    },
+    {
+      accessorKey: "user.email",
+      id: "email",
+      header: "Email",
+      cell: ({ row }) => <span className="text-muted-foreground text-sm">{row.original.user.email}</span>,
+    },
+    {
+      accessorKey: "role",
+      header: "Organization Role",
+      cell: ({ row }) => (
+        <Badge variant={getOrgRoleBadgeVariant(row.original.role)}>
+          {row.original.role === "admin" ? "Org Admin" : "Staff"}
+        </Badge>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const member = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" disabled={isPending}>
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Staff Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedMember(member);
+                  setEditOpen(true);
+                }}
+              >
+                <Pencil className="mr-2 size-4 text-muted-foreground" />
+                Edit Staff Member
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              {member.role !== "admin" && member.role !== "owner" ? (
+                <DropdownMenuItem
+                  onClick={() =>
+                    promote({ memberId: member.id, userId: member.userId })
+                  }
+                >
+                  <ArrowUpCircle className="mr-2 size-4 text-emerald-500" />
+                  Promote to Admin
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem
+                  onClick={() =>
+                    demote({ memberId: member.id, userId: member.userId })
+                  }
+                >
+                  <ArrowDownCircle className="mr-2 size-4 text-amber-500" />
+                  Demote to Staff
+                </DropdownMenuItem>
+              )}
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:bg-destructive/10"
+                onClick={() => handleRemoveClick(member)}
+              >
+                <UserMinus className="mr-2 size-4 text-destructive" />
+                Remove from Org
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
+
   return (
     <div>
-      {members.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          No staff members found in this organization.
-        </div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Organization Role</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {members.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell className="font-medium">{member.user.name}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">
-                  {member.user.email}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getOrgRoleBadgeVariant(member.role)}>
-                    {member.role === "admin" ? "Org Admin" : "Staff"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" disabled={isPending}>
-                        <MoreHorizontal className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>Staff Actions</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
+      <DataTable
+        columns={columns}
+        data={members}
+        searchKey="email"
+        placeholder="Search staff by email..."
+      />
 
-                      <DropdownMenuItem asChild>
-                        <Link href={`/admin/staff/${member.userId}/edit`}>
-                          <Pencil className="mr-2 size-4 text-muted-foreground" />
-                          Edit Staff Member
-                        </Link>
-                      </DropdownMenuItem>
-
-                      <DropdownMenuSeparator />
-
-                      {member.role !== "admin" && member.role !== "owner" ? (
-                        <DropdownMenuItem
-                          onClick={() =>
-                            promote({ memberId: member.id, userId: member.userId })
-                          }
-                        >
-                          <ArrowUpCircle className="mr-2 size-4 text-emerald-500" />
-                          Promote to Admin
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem
-                          onClick={() =>
-                            demote({ memberId: member.id, userId: member.userId })
-                          }
-                        >
-                          <ArrowDownCircle className="mr-2 size-4 text-amber-500" />
-                          Demote to Staff
-                        </DropdownMenuItem>
-                      )}
-
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:bg-destructive/10"
-                        onClick={() => handleRemoveClick(member)}
-                      >
-                        <UserMinus className="mr-2 size-4 text-destructive" />
-                        Remove from Org
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+      {/* Edit Staff Member Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Edit Staff Member</DialogTitle>
+          </DialogHeader>
+          {selectedMember && (
+            <div className="pt-2">
+              <EditStaffForm
+                user={{
+                  id: selectedMember.user.id,
+                  name: selectedMember.user.name,
+                  email: selectedMember.user.email,
+                }}
+                onSuccess={() => setEditOpen(false)}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete/Remove Confirmation Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

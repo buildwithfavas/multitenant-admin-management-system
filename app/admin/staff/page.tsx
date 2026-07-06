@@ -1,24 +1,29 @@
 // app/admin/staff/page.tsx — Scoped Staff Management Page (Org Admin)
 
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { prisma } from "@/lib/prisma";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
-import { Plus, Users } from "lucide-react";
-import { StaffTable } from "@/components/admin/staff-table";
+import { StaffTable } from "@/components/admin/staff-table"
+import { AddStaffDialog } from "@/components/admin/add-staff-dialog"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { auth } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { Users } from "lucide-react"
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 
-export const metadata = { title: "Staff Members | Org Admin" };
+export const metadata = { title: "Staff Members | Org Admin" }
 
 export default async function AdminStaffPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
-  });
+  })
 
   if (!session?.user) {
-    redirect("/login");
+    redirect("/login")
   }
 
   // Find organization membership
@@ -27,12 +32,12 @@ export default async function AdminStaffPage() {
       userId: session.user.id,
       role: { in: ["admin"] },
     },
-  });
+  })
 
-  const orgId = membership?.organizationId;
+  const orgId = membership?.organizationId
 
   if (!orgId && session.user.role !== "admin") {
-    redirect("/login");
+    redirect("/login")
   }
 
   // Scoped database query to fetch members of THIS organization
@@ -53,23 +58,18 @@ export default async function AdminStaffPage() {
       },
     },
     orderBy: { createdAt: "desc" },
-  });
+  })
 
   return (
     <div className="flex flex-col gap-8 p-6 lg:p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Staff Members</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1 text-muted-foreground">
             Manage users in your organization ({members.length} total)
           </p>
         </div>
-        <Button asChild>
-          <Link href="/admin/staff/new">
-            <Plus className="mr-2 size-4" />
-            Add Staff Member
-          </Link>
-        </Button>
+        <AddStaffDialog />
       </div>
 
       <Card>
@@ -79,7 +79,8 @@ export default async function AdminStaffPage() {
             Organization Directory
           </CardTitle>
           <CardDescription>
-            List of users assigned to your organization. Promote members to Admins, demote back to Staff, or revoke access.
+            List of users assigned to your organization. Promote members to
+            Admins, demote back to Staff, or revoke access.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -87,5 +88,5 @@ export default async function AdminStaffPage() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
