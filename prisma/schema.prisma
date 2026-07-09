@@ -1,24 +1,3 @@
-// This is your Prisma schema file
-// Learn more: https://pris.ly/d/prisma-schema
-//
-// ============================================================
-// WHAT IS THIS FILE?
-// ============================================================
-// The Prisma schema is the "blueprint" of your database.
-// You define models (tables) and their fields (columns) here.
-// When you run `pnpm prisma migrate dev`, Prisma reads this file
-// and creates/updates the actual tables in PostgreSQL.
-//
-// HOW BETTER AUTH + PRISMA WORK TOGETHER:
-// Better Auth needs specific tables (user, session, account, etc.)
-// to store authentication data. Instead of creating them manually,
-// Better Auth can generate them. We define them here to match what
-// Better Auth expects — including extra fields from its plugins.
-//
-// PLUGINS USED:
-// 1. admin plugin    → adds `role`, `banned`, `banReason`, `banExpires` to User
-// 2. organization plugin → adds Organization, Member, Invitation tables
-// ============================================================
 
 generator client {
   provider = "prisma-client-js"
@@ -29,13 +8,6 @@ datasource db {
 }
 
 
-// ============================================================
-// USER TABLE
-// ============================================================
-// Base table required by Better Auth.
-// The admin plugin adds: role, banned, banReason, banExpires
-// The organization plugin adds: members (relation)
-// ============================================================
 model User {
   id            String    @id @default(cuid())
   name          String
@@ -45,31 +17,19 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // ── Admin Plugin Fields ──────────────────────────────────
-  // role: "superadmin" | "admin" | "member" (default: "member")
-  // Better Auth admin plugin uses this to determine admin access
   role      String  @default("member")
   banned    Boolean @default(false)
   banReason String?
   banExpires DateTime?
 
-  // ── Relations ────────────────────────────────────────────
   sessions    Session[]
   accounts    Account[]
-  members     Member[]       // org memberships (from organization plugin)
-  invitations Invitation[]   // invitations sent by this user
+  members     Member[]
+  invitations Invitation[]
 
-  @@map("user") // table name in PostgreSQL will be "user"
+  @@map("user")
 }
 
-// ============================================================
-// SESSION TABLE
-// ============================================================
-// Better Auth stores user sessions here.
-// When a user logs in → a new session row is created.
-// When they log out or session expires → the row is deleted.
-// The browser stores only the session "token" in a cookie.
-// ============================================================
 model Session {
   id        String   @id @default(cuid())
   expiresAt DateTime
@@ -79,22 +39,14 @@ model Session {
   ipAddress String?
   userAgent String?
 
-  // Which user this session belongs to
   userId    String
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Organization plugin: track which org is "active" for this session
   activeOrganizationId String?
 
   @@map("session")
 }
 
-// ============================================================
-// ACCOUNT TABLE
-// ============================================================
-// For OAuth providers (Google, GitHub, etc.)
-// We only use email/password, but Better Auth requires this table.
-// ============================================================
 model Account {
   id                    String    @id @default(cuid())
   accountId             String
@@ -106,7 +58,7 @@ model Account {
   accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
   scope                 String?
-  password              String?   // hashed password for email/password auth
+  password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -115,16 +67,10 @@ model Account {
   @@map("account")
 }
 
-// ============================================================
-// VERIFICATION TABLE
-// ============================================================
-// Used by Better Auth for email verification tokens,
-// password reset tokens, etc.
-// ============================================================
 model Verification {
   id         String   @id @default(cuid())
-  identifier String   // usually the email address
-  value      String   // the verification token
+  identifier String
+  value      String
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -132,81 +78,42 @@ model Verification {
   @@map("verification")
 }
 
-// ============================================================
-// ORGANIZATION TABLE
-// ============================================================
-// Added by the Better Auth organization plugin.
-// Each organization = a company/tenant in our multi-tenant system.
-//
-// Example rows:
-// | id        | name       | slug       |
-// |-----------|------------|------------|
-// | org_abc   | Acme Corp  | acme-corp  |
-// | org_def   | TechStart  | techstart  |
-// ============================================================
 model Organization {
   id        String   @id @default(cuid())
   name      String
-  slug      String   @unique  // URL-friendly name (e.g., "acme-corp")
+  slug      String   @unique
   logo      String?
   createdAt DateTime @default(now())
-  metadata  String?  // JSON string for extra data
+  metadata  String?
 
-  // An organization has many members and invitations
   members     Member[]
   invitations Invitation[]
 
   @@map("organization")
 }
 
-// ============================================================
-// MEMBER TABLE
-// ============================================================
-// Links users to organizations with a specific role.
-// This is the heart of our multi-tenant RBAC system!
-//
-// Example rows:
-// | userId   | organizationId | role   |
-// |----------|----------------|--------|
-// | user_bob | org_acme       | admin  |    ← Bob is Admin in Acme
-// | user_charlie | org_acme   | member |    ← Charlie is Staff in Acme
-// | user_david | org_tech     | admin  |    ← David is Admin in TechStart
-//
-// Organization roles (from Better Auth org plugin):
-// "owner"  → the person who created the org (set to superadmin)
-// "admin"  → Org Admin in our system
-// "member" → Staff in our system
-// ============================================================
 model Member {
   id             String   @id @default(cuid())
   organizationId String
   userId         String
-  role           String   @default("member") // owner | admin | member
+  role           String   @default("member")
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([organizationId, userId]) // a user can only be in an org once
+  @@unique([organizationId, userId])
   @@map("member")
 }
 
-// ============================================================
-// INVITATION TABLE
-// ============================================================
-// When an admin invites someone to join their org,
-// an invitation row is created here.
-//
-// Status: "pending" → "accepted" or "rejected" or "cancelled"
-// ============================================================
 model Invitation {
   id             String    @id @default(cuid())
   organizationId String
-  email          String    // email of the person being invited
-  role           String?   // what role they'll get when they accept
-  status         String    @default("pending") // pending | accepted | rejected | cancelled
+  email          String
+  role           String?
+  status         String    @default("pending")
   expiresAt      DateTime
-  inviterId      String    // who sent the invite
+  inviterId      String
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   inviter      User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
